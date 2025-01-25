@@ -1,0 +1,16 @@
+# Prevent cache being added to the repo
+__pycache__/
+
+# Common IDE's
+.idea/
+
+# Environment files
+.env
+.vscode
+/venv/
+venv/
+
+# Logs & Records
+*.log
+*.csv
+data/
