@@ -26,5 +26,5 @@ sudo setcap 'cap_net_bind_service=+ep' $PYTHON_BIN
 echo "Permissões setcap aplicadas ao Python" | tee -a /home/ec2-user/IngestData-App/deploy.log
 
 # Executar o comando main.py
-nohup main.py > /dev/null 2>&1 &
+nohup python main.py > /dev/null 2>&1 &
 echo "Comando main executado" | tee -a /home/ec2-user/IngestData-App/deploy.log
