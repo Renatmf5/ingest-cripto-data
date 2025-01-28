@@ -2,6 +2,7 @@ import os
 import datetime as dt
 from api.functions import *
 from api.keys import *
+from services.parameterServiceAws import get_ssm_parameter
 
 def fetch_data(pair, timeframe, periodo, data_path):
     """
@@ -13,7 +14,9 @@ def fetch_data(pair, timeframe, periodo, data_path):
     periodo (str): Período para ajustar as datas (ex: "mensal", "semestral", "1ano", "3anos", "5anos").
     """
     # Load the binance keys
-    client = api.Binance_API(api_key=BINANCE_API_KEY, secret_key=BINANCE_SECRET_KEY)
+    api_key = get_ssm_parameter("/IngestData-app/BINANCE_API_KEY")
+    secret_key = get_ssm_parameter("/IngestData-ap/BINANCE_SECRET_KEY")
+    client = api.Binance_API(api_key=api_key, secret_key=secret_key)
 
     # Calcular o último dia do mês passado
     today = dt.date.today()
