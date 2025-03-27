@@ -15,20 +15,20 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 async def main():
     # Definir os parâmetros
     pair = "BTCUSDT"
-    timeframe = "1d"
-    periodo = "semestral"
+    timeframe = "15m"
+    periodo = "1ano"
     bucket_name = os.getenv("BUCKET_NAME")
     
     # Criar path para candles e valor da variável periodo
     data_folder = os.path.join("data", "candles", f"{pair}", f"{timeframe}", f"{periodo}")
     datasets_folder = os.path.join("data", "datasets", f"{pair}", f"{timeframe}", f"{periodo}")
-    data_path = os.path.join(data_folder, f"df_{timeframe}_{pair}_{periodo}.parquet")
-    datasets_path = os.path.join(datasets_folder, f"df_{timeframe}_{pair}_{periodo}.parquet")
+    data_path = os.path.join(data_folder, f"{timeframe}_{pair}_{periodo}.parquet")
+    datasets_path = os.path.join(datasets_folder, f"{timeframe}_{pair}_{periodo}.parquet")
     os.makedirs(data_folder, exist_ok=True)
     os.makedirs(datasets_folder, exist_ok=True)
     
     # Buscar os dados
-    fetch_data(pair=pair, timeframe=timeframe, periodo=periodo, data_path=data_path)
+    #fetch_data(pair=pair, timeframe=timeframe, periodo=periodo, data_path=data_path)
     
     # Instanciar a classe DataHandler
     data_handler = DataHandler()

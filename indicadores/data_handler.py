@@ -12,9 +12,11 @@ class DataHandler:
             raise ValueError(f"Erro ao ler o arquivo Parquet: {e}")
         
         self.df = calcular_retorno_candle(self.df)
-        self.df = calcular_medias_moveis(self.df)
-        self.df = calcular_volatilidade_candles(self.df, timeframe)
+        self.df = calcular_indicadores_xgboost(self.df, timeframe)
+        self.df = calcular_indicadores_mlp(self.df, timeframe)
+        self.df = calcular_indicadores_lstm(self.df, timeframe)
         self.df = calcular_volatilidade_adp_volumes_direcional(self.df, timeframe)
+        self.df = detectar_proximidade_topo_fundo(self.df, timeframe)
         self.df = self.df.dropna()
         self.df = gerar_sinal(self.df, timeframe)
         self.df.to_parquet(datasets_path, index=False)

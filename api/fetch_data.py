@@ -30,6 +30,8 @@ def fetch_data(pair, timeframe, periodo, data_path):
         start_date = (first_day_of_current_month - dt.timedelta(days=last_day_of_last_month.day + 6*30)).strftime('%Y-%m-%d')
     elif periodo == "1ano":
         start_date = (first_day_of_current_month - dt.timedelta(days=last_day_of_last_month.day + 12*30)).strftime('%Y-%m-%d')
+    elif periodo == "2anos":
+        start_date = (first_day_of_current_month - dt.timedelta(days=last_day_of_last_month.day + 24*30)).strftime('%Y-%m-%d')
     elif periodo == "3anos":
         start_date = (first_day_of_current_month - dt.timedelta(days=last_day_of_last_month.day + 36*30)).strftime('%Y-%m-%d')
     elif periodo == "5anos":

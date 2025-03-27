@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def calcular_retorno_candle(df):
     df['retorno_candle'] = df['close'].pct_change().round(2)
@@ -7,69 +8,142 @@ def calcular_retorno_candle(df):
 
 def gerar_sinal(df, timeframe):
     # criar condição de valor de alvo_base com base no timeframe
-    if timeframe == '1d':
-        alvo_base = 2
-    elif timeframe == '4h':
+    if timeframe == '15m':
         alvo_base = 3
-    elif timeframe == '1h':
-        alvo_base = 4
     sinais = []
+    tempos = []
+    tamanho_alvo = []
+    passado_1 = []
+    passado_2 = []
+    passado_3 = []
+    target = []
+    
     for i in range(len(df)):
-        soma_retorno = 0
         sinal = None
         linhas = 0
-        #quando volatilidade nao tiver valor use alvo base com 2 casas decimais
+        # quando volatilidade nao tiver valor use alvo base com 2 casas decimais
         if pd.isna(df['volatilidade'].iloc[i]):
             alvo_ajustado = alvo_base
         else:
             alvo_ajustado = alvo_base * df['volatilidade'].iloc[i]
-        for j in range(i, len(df)):
-            soma_retorno += df['retorno_candle'].iloc[j]
+            
+        for j in range(i, len(df)-1):
+            retorno_high = (df['high'].iloc[j+1] / df['close'].iloc[i]) - 1
+            retorno_low = (df['low'].iloc[j+1] / df['close'].iloc[i]) - 1
+            
             linhas += 1
-            if soma_retorno >= alvo_ajustado:
+            if retorno_high >= alvo_ajustado:
                 sinal = 1
+                target.append(alvo_ajustado)
                 break
-            elif soma_retorno <= -alvo_ajustado:
+            elif retorno_low <= -alvo_ajustado:
                 sinal = 0
+                target.append(-alvo_ajustado)
                 break
+        
+        # Calcular os retornos passados com base no tempo que o sinal demorou para ser gerado
+        if sinal is not None:
+            # Calcular os retornos passados fixos para 5, 10 e 15 candles
+            if i - 5 >= 0:
+                passado_1.append((df['close'].iloc[i] / df['close'].iloc[i - 5]) - 1)
+            else:
+                passado_1.append(np.nan)
+            
+            if i - 10 >= 0:
+                passado_2.append((df['close'].iloc[i] / df['close'].iloc[i - 10]) - 1)
+            else:
+                passado_2.append(np.nan)
+            
+            if i - 15 >= 0:
+                passado_3.append((df['close'].iloc[i] / df['close'].iloc[i - 15]) - 1)
+            else:
+                passado_3.append(np.nan)
+        else:
+            passado_1.append(np.nan)
+            passado_2.append(np.nan)
+            passado_3.append(np.nan)
+            target.append(np.nan)  # Adicionar NaN ao target quando não houver sinal
+        
         sinais.append(sinal)
+        tempos.append(linhas)
+        tamanho_alvo.append(alvo_ajustado)
+    
     df['signal'] = sinais
+    df['tempo'] = tempos
+    df['tamanho_alvo'] = tamanho_alvo
+    df['passado_1'] = passado_1
+    df['passado_2'] = passado_2
+    df['passado_3'] = passado_3
+    df['target'] = target
+    
+    # Dropar colunas tempo e tamanho_alvo
+    df = df.drop(columns=['tempo', 'tamanho_alvo'])
+    
+    # Dropar linhas com valores NaN
     df = df.dropna()
+    
+    # Converter a coluna 'signal' para int64
     df['signal'] = df['signal'].astype('int64')
+    
     return df
+
+# Exemplo de uso
+# df = pd.read_csv('seu_arquivo.csv')
+# df = gerar_sinal(df, '15m')
+# print(df.head())
 
 def calcular_volatilidade_adp_volumes_direcional(df, timeframe):
     # Calcular a volatilidade adaptada para volumes em BTC e USDT
-    if timeframe == '1d':
-        df['mean_volume'] = df['volume'].rolling(window=7).mean()
-        df['std_volume'] = df['volume'].rolling(window=7).std()
-        df['ATR_volume'] = df['std_volume']
-        # Criar a proporção entre 'taker_buy_base_asset_volume' (BTC) e volume total (BTC)
+    if timeframe == '15m':
+        df['mean_volume'] = df['volume'].rolling(window=96).mean()
+        df['std_volume'] = df['volume'].rolling(window=96).std()
         df['proportion_taker_BTC'] = df['taker_buy_base_asset_volume'] / df['volume']
-        # Calcular a média histórica da proporção BTC e USDT
-        df['mean_proportion_BTC'] = df['proportion_taker_BTC'].rolling(window=14).mean()
-        # Calcular o desvio padrão histórico das proporções
-        df['std_proportion_BTC'] = df['proportion_taker_BTC'].rolling(window=14).std()
-        df['volatilidade'] = df['close'].pct_change().rolling(window=30).std()
-
-    if timeframe == '4h':
-        df['mean_volume'] = df['volume'].rolling(window=14).mean()
-        df['std_volume'] = df['volume'].rolling(window=14).std()
-        df['ATR_volume'] = df['std_volume']
-        df['proportion_taker_BTC'] = df['taker_buy_base_asset_volume'] / df['volume']
-        df['mean_proportion_BTC'] = df['proportion_taker_BTC'].rolling(window=28).mean()
-        df['std_proportion_BTC'] = df['proportion_taker_BTC'].rolling(window=28).std()
-        df['volatilidade'] = df['close'].pct_change().rolling(window=42).std()
-        
-    if timeframe == '1h':
-        df['mean_volume'] = df['volume'].rolling(window=24).mean()
-        df['std_volume'] = df['volume'].rolling(window=24).std()
-        df['ATR_volume'] = df['std_volume']
-        df['proportion_taker_BTC'] = df['taker_buy_base_asset_volume'] / df['volume']
-        df['mean_proportion_BTC'] = df['proportion_taker_BTC'].rolling(window=48).mean()
-        df['std_proportion_BTC'] = df['proportion_taker_BTC'].rolling(window=48).std()
-        df['volatilidade'] = df['close'].pct_change().rolling(window=96).std()
+        df['mean_proportion_BTC'] = df['proportion_taker_BTC'].rolling(window=192).mean()
+        df['std_proportion_BTC'] = df['proportion_taker_BTC'].rolling(window=192).std()
+        df['volatilidade'] = df['close'].pct_change().rolling(window=720).std()
         
     # Calcular o z-score (desvio em relação à média) para identificar desvios significativos
     df['z_score_BTC'] = (df['proportion_taker_BTC'] - df['mean_proportion_BTC']) / df['std_proportion_BTC']
+    
+     # Calcular a média móvel exponencial do volume
+    df['ema_volume'] = df['volume'].ewm(span=20, adjust=False).mean()
+    
+    # Calcular a média móvel exponencial da volatilidade
+    df['ema_volatilidade'] = df['volatilidade'].ewm(span=20, adjust=False).mean()
+       
+    # Ao final tornar a coluna index devolta para um id sequencial
+    df = df.reset_index(drop=True)
+    return df
+
+def detectar_proximidade_topo_fundo(df, timeframe):
+    if timeframe == '15m':
+        curto = 96
+        medio = 192
+        longo = 672
+        margem = 0.003
+    
+    # Detectar proximidade de topo curto
+    df['proximo_topo_curto'] = ((df['close'] < df['high'].rolling(window=curto).max()) & 
+                                (abs(df['close'] - df['high'].rolling(window=curto).max()) / df['high'].rolling(window=curto).max() <= margem)).astype(int)
+    
+    # Detectar proximidade de fundo curto
+    df['proximo_fundo_curto'] = ((df['close'] > df['low'].rolling(window=curto).min()) & 
+                                 (abs(df['close'] - df['low'].rolling(window=curto).min()) / df['low'].rolling(window=curto).min() <= margem)).astype(int)
+    
+    # Detectar proximidade de topo médio
+    df['proximo_topo_medio'] = ((df['close'] < df['high'].rolling(window=medio).max()) & 
+                                (abs(df['close'] - df['high'].rolling(window=medio).max()) / df['high'].rolling(window=medio).max() <= margem)).astype(int)
+    
+    # Detectar proximidade de fundo médio
+    df['proximo_fundo_medio'] = ((df['close'] > df['low'].rolling(window=medio).min()) & 
+                                 (abs(df['close'] - df['low'].rolling(window=medio).min()) / df['low'].rolling(window=medio).min() <= margem)).astype(int)
+    
+    # Detectar proximidade de topo longo
+    df['proximo_topo_longo'] = ((df['close'] < df['high'].rolling(window=longo).max()) & 
+                                (abs(df['close'] - df['high'].rolling(window=longo).max()) / df['high'].rolling(window=longo).max() <= margem)).astype(int)
+    
+    # Detectar proximidade de fundo longo
+    df['proximo_fundo_longo'] = ((df['close'] > df['low'].rolling(window=longo).min()) & 
+                                 (abs(df['close'] - df['low'].rolling(window=longo).min()) / df['low'].rolling(window=longo).min() <= margem)).astype(int)
+    
     return df
